@@ -1,0 +1,65 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android" android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical">
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:background="#B3B2B2">
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="4dp"
+        android:layout_marginTop="1dp"
+        android:background="#ffff">
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:weightSum="1">
+            <TextView
+                android:id="@+id/newChatContactView"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="name of contact"
+                android:textSize="18dp"
+                android:layout_weight="0.9"/>
+            <TextView
+                android:visibility="invisible"
+                android:id="@+id/msgCount"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:padding="10dp"
+                android:background="@drawable/chat_count"
+                android:text="99"/>
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="07/08/2020"
+                android:layout_weight="0.1"
+                android:gravity="right"/>
+        </LinearLayout>
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content">
+        <TextView
+            android:id="@+id/newMsgStatus"
+            android:layout_width="15dp"
+            android:layout_height="15dp"
+            android:layout_gravity="bottom"
+            android:layout_marginRight="5dp"
+            android:background="@drawable/icon_wait"
+            android:padding="5dp"/>
+        <TextView
+            android:id="@+id/newChatMsgView"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:ellipsize="end"
+            android:maxLines="1"
+            android:text="i am message from some contscts here is only demo one dont worry"/>
+        </LinearLayout>
+        </LinearLayout>
+    </LinearLayout>
+</LinearLayout>

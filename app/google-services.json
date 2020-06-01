@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "1056430553326",
+    "firebase_url": "https://myst-mysterio.firebaseio.com",
+    "project_id": "myst-mysterio",
+    "storage_bucket": "myst-mysterio.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:1056430553326:android:54bf9162af5390a316dbff",
+        "android_client_info": {
+          "package_name": "com.vikas.myst"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "1056430553326-29jt13f4i9aleva0nr16lcvjv32laj0c.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.vikas.myst",
+            "certificate_hash": "266773213450b3469bdeeeaa34bdfc0bc81f20c9"
+          }
+        },
+        {
+          "client_id": "1056430553326-lk7etbtr1cuv11go6f9o3kigpemv4kef.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDqEmNg2zgpaBz-QNAsDjRfp1yQHBirIFg"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "1056430553326-lk7etbtr1cuv11go6f9o3kigpemv4kef.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

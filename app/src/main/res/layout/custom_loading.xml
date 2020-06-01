@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout
+    xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:clickable="true"
+    android:visibility="visible"
+    android:background="#E0D2DFFA"
+    android:orientation="vertical">
+
+<TextView
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:layout_marginTop="200dp"
+    android:gravity="center"
+    android:textStyle="bold"
+    android:textColor="#105E01"
+    android:textSize="20dp"
+    android:id="@+id/plz"
+    android:text="PlEASE WAIT..."/>
+<ProgressBar
+    android:layout_gravity="center"
+    android:layout_marginTop="100dp"
+    android:id="@+id/simpleProgressBar"
+    android:layout_width="100dp"
+    android:layout_height="100dp"
+    android:theme="@style/persianBlue"
+    />
+    <TextView
+        android:visibility="gone"
+        android:id="@+id/msg"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:textColor="#FF0000"
+        android:textSize="30dp"
+        android:textStyle="bold"
+        android:text="No INTERNET"
+        android:layout_gravity="center"
+        android:gravity="center"/>
+</LinearLayout>
