@@ -5,19 +5,23 @@ import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
 
 import android.app.AlertDialog;
+import android.content.ContentResolver;
 import android.content.Context;
 import android.content.Intent;
 import android.graphics.Bitmap;
 import android.graphics.Color;
+import android.media.ThumbnailUtils;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Bundle;
 import android.provider.MediaStore;
 import android.view.LayoutInflater;
 import android.view.View;
+import android.webkit.MimeTypeMap;
 import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
+import android.widget.MediaController;
 import android.widget.ProgressBar;
 import android.widget.ScrollView;
 import android.widget.TextView;
@@ -38,9 +42,11 @@ import com.vikas.myst.cloud.Sync;
 import com.vikas.myst.sql.ContactTable;
 import com.vikas.myst.sql.NewChatTable;
 import com.vikas.myst.util.ChatUtil;
+import com.vikas.myst.util.PathUtil;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.net.URISyntaxException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.Locale;
@@ -66,6 +72,7 @@ public class ChatBox extends AppCompatActivity {
     StorageReference storageReference;
     LinearLayout imageVideoLayout;
     Button test;
+    private MediaController mediaControls;
     SimpleDateFormat simpleTimeDateFormat=new SimpleDateFormat("ddMMyyyyHHmmss", Locale.ENGLISH);
     public static String friendStatus="unknown";
     @Override
@@ -76,6 +83,7 @@ public class ChatBox extends AppCompatActivity {
         msgView=findViewById(R.id.msgView);
         sendMsg=findViewById(R.id.sendMsg);
         Intent myIntent=getIntent();
+        mediaControls = new MediaController(this);
         myNumber=myIntent.getStringExtra("myNumber");
         friendNumber=myIntent.getStringExtra("friendNumber");
         friendNameView=findViewById(R.id.friendNameView);
@@ -220,41 +228,65 @@ public class ChatBox extends AppCompatActivity {
         if ((requestCode == 100||requestCode == 101)&& resultCode == RESULT_OK && data != null && data.getData() != null) {
             final Uri filePath = data.getData();
             View pickerView=LayoutInflater.from(ctx).inflate(R.layout.send_image,null);
+
+            String type="";
             if(requestCode == 100) {
                 ImageView pickImageView = pickerView.findViewById(R.id.pickImage);
                 pickImageView.setVisibility(View.VISIBLE);
                 pickImageView.setImageURI(filePath);
+                type="image";
             }else {
                 VideoView pickVideo=pickerView.findViewById(R.id.pickVideo);
                 pickVideo.setVisibility(View.VISIBLE);
                 pickVideo.setVideoURI(filePath);
+                pickVideo.setMediaController(mediaControls);
+                pickVideo.start();
+                type="video";
             }
             Button imageOkButton=pickerView.findViewById(R.id.imageSendButton);
             android.app.AlertDialog.Builder builder=new android.app.AlertDialog.Builder(ctx);
             final AlertDialog ad=builder.create();
             ad.setView(pickerView);
             ad.show();
+            final String finalType = type;
+            final String finalType1 = type;
             imageOkButton.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
                     ad.dismiss();
                     View imageView=LayoutInflater.from(ctx).inflate(R.layout.sent_image_unit_chat,null);
-                    ImageView imv=imageView.findViewById(R.id.chatImage);
+                    if(finalType.equalsIgnoreCase("image"))
+                    {
+                        ImageView imv=imageView.findViewById(R.id.chatImage);
+                        imv.setVisibility(View.VISIBLE);
+                        imv.setImageURI(filePath);
+                        imv.setOnClickListener(new View.OnClickListener() {
+                            @Override
+                            public void onClick(View vr) {
+                                ChatUtil.getImagePreview(filePath,ctx);
+                            }
+                        });
+                    }else{
+                        ImageView videoView=imageView.findViewById(R.id.chatVideo);
+                        videoView.setVisibility(View.VISIBLE);
+                        try {
+                            String absPath=PathUtil.getPath(ctx,filePath);
+                            Bitmap bmThumbnail = ThumbnailUtils.createVideoThumbnail(absPath, MediaStore.Images.Thumbnails.MINI_KIND);
+                            videoView.setImageBitmap(bmThumbnail);
+                        } catch (URISyntaxException e) {
+                            e.printStackTrace();
+                        }
+
+                    }
                     ProgressBar imageLoading=imageView.findViewById(R.id.imageLoading);
                     TextView imageWait=imageView.findViewById(R.id.imageWait);
                     ImageView iconError=imageView.findViewById(R.id.iconError);
                     TextView uploadPercentage=imageView.findViewById(R.id.uploadPercentage);
                     String timeId=simpleTimeDateFormat.format(new Date());
                     imageWait.setId((int) Long.parseLong(timeId));
-                    imv.setImageURI(filePath);
-                    imv.setOnClickListener(new View.OnClickListener() {
-                        @Override
-                        public void onClick(View vr) {
-                            ChatUtil.getImagePreview(filePath,ctx);
-                        }
-                    });
+
                     try {
-                        MyTaskParams myTaskParams=new MyTaskParams(ctx,imageLoading,imageWait,iconError,myNumber,friendNumber,timeId,storageReference,filePath,uploadPercentage);
+                        MyTaskParams myTaskParams=new MyTaskParams(ctx,imageLoading,imageWait,iconError,myNumber,friendNumber,timeId,storageReference,filePath,uploadPercentage, finalType1);
                         LongOperation longOperation=new LongOperation();
                         longOperation.execute(myTaskParams);
                     } catch (Exception e) {
@@ -313,13 +345,14 @@ public class ChatBox extends AppCompatActivity {
         StorageReference storageReference;
         Uri filePath;
         TextView uploadPercentage;
+        String type;
 
         MyTaskParams(Context context,
                      ProgressBar imageLoading,
                      TextView imageWait, ImageView iconError,
                      String myNumber, String friendNumber,
                      String timeId, StorageReference storageReference,
-                     Uri filePath, TextView uploadPercentage) {
+                     Uri filePath, TextView uploadPercentage, String type) {
             this.context = context;
             this.imageLoading=imageLoading;
             this.imageWait=imageWait;
@@ -330,6 +363,7 @@ public class ChatBox extends AppCompatActivity {
             this.storageReference=storageReference;
             this.filePath=filePath;
             this.uploadPercentage=uploadPercentage;
+            this.type=type;
         }
     }
     private static final class LongOperation extends AsyncTask<MyTaskParams, MyTaskParams, MyTaskParams[]> {
@@ -359,7 +393,14 @@ public class ChatBox extends AppCompatActivity {
                     myTaskParams[0].uploadPercentage.setVisibility(View.GONE);
                     myTaskParams[0].imageLoading.setVisibility(View.GONE);
                     myTaskParams[0].imageWait.setVisibility(View.VISIBLE);
-                    Sync.saveInFireDbAndSetInViewChat(myTaskParams[0].myNumber,myTaskParams[0].friendNumber,myTaskParams[0].filePath.getPath(),myTaskParams[0].context,"image",myTaskParams[0].timeId);
+
+                    String exPath= null;
+                    try {
+                        exPath = PathUtil.getPath(myTaskParams[0].context, Uri.parse(myTaskParams[0].filePath.toString()));
+                    } catch (URISyntaxException e) {
+                        e.printStackTrace();
+                    }
+                    Sync.saveInFireDbAndSetInViewChat(myTaskParams[0].myNumber,myTaskParams[0].friendNumber,exPath,myTaskParams[0].context,myTaskParams[0].type,myTaskParams[0].timeId);
                 }
             }).addOnProgressListener(new OnProgressListener<UploadTask.TaskSnapshot>() {
                 @Override

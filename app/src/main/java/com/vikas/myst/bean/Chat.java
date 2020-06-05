@@ -4,7 +4,7 @@ import java.util.Objects;
 
 public class Chat {
 
-    private long id;
+    private String id;
     private String date;
     private String from;
     private String msg;
@@ -79,11 +79,11 @@ public class Chat {
         this.friend = friend;
     }
 
-    public long getId() {
+    public String getId() {
         return id;
     }
 
-    public void setId(long id) {
+    public void setId(String id) {
         this.id = id;
     }
 
@@ -109,7 +109,7 @@ public class Chat {
                 '}';
     }
 
-    public Chat(long id, String date, String from, String msg, String status, String time, String friend, String msgType) {
+    public Chat(String id, String date, String from, String msg, String status, String time, String friend, String msgType) {
         this.id = id;
         this.date = date;
         this.from = from;

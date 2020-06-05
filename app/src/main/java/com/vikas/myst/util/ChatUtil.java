@@ -2,10 +2,12 @@ package com.vikas.myst.util;
 
 import android.app.AlertDialog;
 import android.content.Context;
+import android.content.res.AssetFileDescriptor;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
 import android.net.Uri;
 import android.os.Environment;
+import android.provider.MediaStore;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.WindowManager;
@@ -23,6 +25,7 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.OutputStream;
 import java.text.ParseException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
@@ -121,29 +124,60 @@ public class ChatUtil extends AppCompatActivity {
         return false;
     }
 
-    public static String createDirectoryAndSaveFile(Uri uri, String path, String timeId) throws Exception {
-        File direct = new File(Environment.getExternalStorageDirectory() + "/MYST"+path);
-        if(path.equalsIgnoreCase(""))
-            path="/";
+    public static String createDirectoryAndSaveFile(Uri uri, String timeId, String type, File fll) {
+
+        File direct = new File(Environment.getExternalStorageDirectory() + "/MYST");
+
         if (!direct.exists()) {
-            File directory = new File("/sdcard/MYST"+path);
+            File directory = new File("/sdcard/MYST/");
             directory.mkdirs();
         }
+        if(type.equalsIgnoreCase("image")) {
+            File file = new File("/storage/emulated/0/MYST/", timeId + ".jpeg");
+            if (file.exists()) {
+                file.delete();
+            }
+            final Bitmap bitmap = BitmapFactory.decodeFile(uri.getPath());
+            try {
+                FileOutputStream out = new FileOutputStream(file);
+                System.out.println("----------> " + uri.getPath());
+                bitmap.compress(Bitmap.CompressFormat.JPEG, 100, out);
+                /*out.write(uri.toString().getBytes());*/
+                out.flush();
+                out.close();
+            } catch (Exception e) {
+                e.printStackTrace();
+                return "failed";
+            }
+        }else{
 
-        File file = new File("/sdcard/MYST"+path, timeId+".jpeg");
-        if (file.exists()) {
-            file.delete();
+            try {
+                File newfile = new File("/storage/emulated/0/MYST/", timeId + ".mp4");
+
+                if (newfile.exists()) newfile.delete();
+                InputStream in = new FileInputStream(fll);
+
+                OutputStream out = new FileOutputStream(newfile);
+                byte[] buf = new byte[1024];
+                int len;
+
+                while ((len = in.read(buf)) > 0) {
+                    out.write(buf, 0, len);
+                }
+
+                in.close();
+                out.close();
+                System.out.println( "Copy file successful.");
+
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
+
+            // Copy the bits from instream to outstream
+
         }
-        try {
-            FileOutputStream out = new FileOutputStream(file);
-            out.write(uri.toString().getBytes());
-            out.flush();
-            out.close();
-        } catch (Exception e) {
-            e.printStackTrace();
-            return "failed";
-        }
-        return "mystDirectory";
+        System.out.println("i am sendinf abs path -----> "+uri.getPath());
+        return uri.getPath();
     }
     public static Uri loadImageFromStorage(String path,String timeId)
     {

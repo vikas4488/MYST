@@ -15,7 +15,7 @@ import java.util.List;
 
 public class ChatTable extends SQLiteOpenHelper {
 private final static String CREATE_TABLE="create table "+ChatStructure.TABLE
-        +"("+ChatStructure.ID+" INTEGER,"
+        +"("+ChatStructure.ID+" TEXT,"
         +ChatStructure.FRIEND+" TEXT,"
         +ChatStructure.DATE+" TEXT,"
         +ChatStructure.FROM+" TEXT,"
@@ -104,7 +104,7 @@ private final static String DROP_TABLE="DROP TABLE IF EXISTS "+ChatStructure.TAB
         List<Chat> chats=new ArrayList<>();
         while (cr.moveToNext()){
             Chat chat=new Chat();
-            chat.setId(cr.getLong(cr.getColumnIndex(ChatStructure.ID)));
+            chat.setId(cr.getString(cr.getColumnIndex(ChatStructure.ID)));
             chat.setDate(cr.getString(cr.getColumnIndex(ChatStructure.DATE)));
             chat.setFrom(cr.getString(cr.getColumnIndex(ChatStructure.FROM)));
             chat.setMsg(cr.getString(cr.getColumnIndex(ChatStructure.MSG)));
@@ -120,6 +120,18 @@ private final static String DROP_TABLE="DROP TABLE IF EXISTS "+ChatStructure.TAB
         SQLiteDatabase liteDatabase=getWritableDatabase(ctx);
         ContentValues contentValues=new ContentValues();
         contentValues.put(ChatStructure.STATUS,chat.getStatus());
+        String selection=ChatStructure.ID+" =?";
+        String[] selectionArgs={String.valueOf(chat.getId())};
+        liteDatabase.update(ChatStructure.TABLE,
+                contentValues,
+                selection,
+                selectionArgs);
+    }
+    public static void updateMsgStatusAndMsg(Chat chat, Context ctx) {
+        SQLiteDatabase liteDatabase=getWritableDatabase(ctx);
+        ContentValues contentValues=new ContentValues();
+        contentValues.put(ChatStructure.STATUS,chat.getStatus());
+        contentValues.put(ChatStructure.MSG,chat.getMsg());
         String selection=ChatStructure.ID+" =?";
         String[] selectionArgs={String.valueOf(chat.getId())};
         liteDatabase.update(ChatStructure.TABLE,

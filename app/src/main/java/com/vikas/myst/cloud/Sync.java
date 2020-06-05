@@ -1,20 +1,26 @@
 package com.vikas.myst.cloud;
 
 import android.app.Activity;
+import android.content.ContentResolver;
 import android.content.Context;
 import android.content.Intent;
+import android.database.Cursor;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.media.ThumbnailUtils;
 import android.net.Uri;
 import android.os.AsyncTask;
 import android.os.Environment;
+import android.provider.MediaStore;
 import android.view.LayoutInflater;
 import android.view.View;
+import android.webkit.MimeTypeMap;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.ProgressBar;
 import android.widget.ScrollView;
 import android.widget.TextView;
+import android.widget.VideoView;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -39,6 +45,7 @@ import com.vikas.myst.sql.ChatTable;
 import com.vikas.myst.sql.ContactTable;
 import com.vikas.myst.sql.NewChatTable;
 import com.vikas.myst.util.ChatUtil;
+import com.vikas.myst.util.PathUtil;
 
 import java.io.ByteArrayOutputStream;
 import java.io.File;
@@ -46,6 +53,8 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.URI;
+import java.net.URISyntaxException;
 import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
@@ -79,18 +88,18 @@ public static String myNumber=null;
             chat.setFriend(friendNumber);
             chat.setMsgType(msgType);
             chat.setMsg(msg);
-            if(msgType.equalsIgnoreCase("image"))
+            if(msgType.equalsIgnoreCase("image")||msgType.equalsIgnoreCase("video"))
             {
-                chat.setId(Long.parseLong(timeId));
+                chat.setId(timeId);
             }else{
-                chat.setId(Long.parseLong(crDateAndTime));
+                chat.setId(crDateAndTime);
                 setSendChatView(ctx,chat);
             }
             ChatTable.saveChat(ctx,chat);
-            if(msgType.equalsIgnoreCase("image"))//setting blank message for firebase to frnd as he will receive
+            if(msgType.equalsIgnoreCase("image")||msgType.equalsIgnoreCase("video"))//setting blank message for firebase to frnd as he will receive
                 chat.setMsg("");
             final NewChat newChat=new NewChat();
-            if(msgType.equalsIgnoreCase("image"))
+            if(msgType.equalsIgnoreCase("image")||msgType.equalsIgnoreCase("video"))
                 newChat.setMsg(msgType);
             else
             newChat.setMsg(chat.getMsg());
@@ -106,7 +115,7 @@ public static String myNumber=null;
                 @Override
                 public void onSuccess(Void aVoid) {
                     if(chatBoxContext!=null) {
-                        TextView msgStatus = ((Activity) chatBoxContext).findViewById((int) chat.getId());
+                        TextView msgStatus = ((Activity) chatBoxContext).findViewById((int) Long.parseLong(chat.getId()));
                         msgStatus.setBackgroundResource(R.drawable.icon_sent);
                     }
                     newChat.setStatus("sent");
@@ -119,18 +128,27 @@ public static String myNumber=null;
 
     private static void setSentImageView(Context ctx, Chat chat) {
         View imageView=LayoutInflater.from(ctx).inflate(R.layout.sent_image_unit_chat,null);
-        ImageView imv=imageView.findViewById(R.id.chatImage);
+        ImageView imv = null;
+        ImageView viv=null;
+        if(chat.getMsgType().equalsIgnoreCase("image"))
+        {
+            imv=imageView.findViewById(R.id.chatImage);
+            imv.setVisibility(View.VISIBLE);
+        }
+        else
+        {
+            viv=imageView.findViewById(R.id.chatVideo);
+            viv.setVisibility(View.VISIBLE);
+        }
         ProgressBar imageLoading=imageView.findViewById(R.id.imageLoading);
         TextView imageWait=imageView.findViewById(R.id.imageWait);
-        System.out.println("---------------> path while getting from dbbb. "+chat.getMsg());
-        File file = new File(Uri.parse(chat.getMsg()).getPath());
-        imv.setImageURI(Uri.parse(file.getPath()));
-        /*MyTaskParams myTaskParams=new MyTaskParams(chat,imv,null,ctx);
-        LongOperation longOperation=new LongOperation();
-        longOperation.execute(myTaskParams);*/
 
-        imageWait.setId((int) chat.getId());
-        //imv.setImageBitmap(bitmap);
+        MyTaskParams myTaskParams=new MyTaskParams(chat,imv,null,ctx,viv);
+        LongOperation longOperation=new LongOperation();
+        longOperation.execute(myTaskParams);
+
+        imageWait.setId((int) Long.parseLong(chat.getId()));
+
         imageLoading.setVisibility(View.GONE);
         if(chat.getStatus().equalsIgnoreCase("sent"))
             imageWait.setBackgroundResource(R.drawable.icon_sent);
@@ -154,7 +172,7 @@ public static String myNumber=null;
         TextView sendText=sendView.findViewById(R.id.sendText);
         TextView msgStatus=sendView.findViewById(R.id.msgStatus);
         sendText.setText(chat.getMsg());
-        msgStatus.setId((int) chat.getId());
+        msgStatus.setId((int) Long.parseLong(chat.getId()));
         if(chat.getStatus().equalsIgnoreCase("sent"))
             msgStatus.setBackgroundResource(R.drawable.icon_sent);
         else if(chat.getStatus().equalsIgnoreCase("delivered"))
@@ -187,10 +205,21 @@ public static String myNumber=null;
     }
     private static void setReceiveImageViewFromDb(Context ctx, Chat chat) {
         View receiveView=LayoutInflater.from(ctx).inflate(R.layout.received_image_unit,null);
-        final ImageView imv=receiveView.findViewById(R.id.chatImage);
+        ImageView imv = null;
+        ImageView viv = null;
+        if(chat.getMsgType().equalsIgnoreCase("image"))
+        {
+            imv=receiveView.findViewById(R.id.chatImage);
+            imv.setVisibility(View.VISIBLE);
+        }
+        else
+        {
+            viv=receiveView.findViewById(R.id.chatVideo);
+            viv.setVisibility(View.VISIBLE);
+        }
         final ImageView downloadImage=receiveView.findViewById(R.id.downloadImage);
         downloadImage.setVisibility(View.GONE);
-        MyTaskParams myTaskParams=new MyTaskParams(chat,imv,null,ctx);
+        MyTaskParams myTaskParams=new MyTaskParams(chat,imv,null,ctx,viv);
         LongOperation longOperation=new LongOperation();
         longOperation.execute(myTaskParams);
 
@@ -207,16 +236,30 @@ public static String myNumber=null;
     }
     private static void setReceiveImageView(final Context ctx, final Chat chat) {
         View receiveView=LayoutInflater.from(ctx).inflate(R.layout.received_image_unit,null);
-        final ImageView imvr=receiveView.findViewById(R.id.chatImage);
+        ImageView imvr = null;
+        ImageView viv = null;
+        imvr=receiveView.findViewById(R.id.chatImage);
+        viv=receiveView.findViewById(R.id.chatVideo);
+        if(chat.getMsgType().equalsIgnoreCase("image"))
+        {
+            imvr.setVisibility(View.VISIBLE);
+        }
+        else
+        {
+
+            viv.setVisibility(View.VISIBLE);
+        }
         final ImageView downloadImage=receiveView.findViewById(R.id.downloadImage);
         final TextView downloadPercentage=receiveView.findViewById(R.id.downloadPercentage);
+        final ImageView finalImvr = imvr;
+        final ImageView finalViv = viv;
         downloadImage.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
                 downloadPercentage.setVisibility(View.VISIBLE);
                 downloadImage.setVisibility(View.GONE);
                 DownloadImageInBackground downloadImageInBackground=new DownloadImageInBackground();
-                MyTaskParams myTaskParams=new MyTaskParams(chat,imvr,downloadPercentage,ctx);
+                MyTaskParams myTaskParams=new MyTaskParams(chat, finalImvr,downloadPercentage,ctx, finalViv);
                 downloadImageInBackground.execute(myTaskParams);
             }
         });
@@ -237,7 +280,7 @@ public static String myNumber=null;
             String myType=ChatUtil.getMyType(myNumber,friendNumber);
             for(Chat chat:chats){
                 if(chat.getFrom().equalsIgnoreCase(myType))
-                    if(chat.getMsgType().equalsIgnoreCase("image"))
+                    if(chat.getMsgType().equalsIgnoreCase("image")||chat.getMsgType().equalsIgnoreCase("video"))
                         setSentImageView(ctx,chat);
                     else
                     setSendChatView(ctx,chat);
@@ -248,14 +291,13 @@ public static String myNumber=null;
                         fireRefs.setValue("read");
                     }
 
-
-                    if(chat.getMsgType().equalsIgnoreCase("image"))
+                    System.out.println("status------------------->"+chat.getStatus());
+                    if(chat.getMsgType().equalsIgnoreCase("image")||chat.getMsgType().equalsIgnoreCase("video"))
                     {
                         if(chat.getStatus().equalsIgnoreCase("read"))
                         setReceiveImageViewFromDb(ctx,chat);
                         else
                             setReceiveImageView(chatBoxContext,chat);
-
                     }
                     else
                     {
@@ -355,7 +397,7 @@ public static String myNumber=null;
                 String friendNumber=dataSnapshot.getKey();
                     for(DataSnapshot ds:dataSnapshot.getChildren()){
                         long id=Long.parseLong(ds.getKey());
-                        chat.setId(id);
+                        chat.setId(String.valueOf(id));
                         chat.setStatus(ds.getValue().toString());
                         ChatTable.updateMsgStatus(chat,ctx);
                         if(chatBoxContext!=null) {
@@ -381,7 +423,7 @@ public static String myNumber=null;
                 String friendNumber=dataSnapshot.getKey();
                 for(DataSnapshot ds:dataSnapshot.getChildren()){
                     long id=Long.parseLong(ds.getKey());
-                    chat.setId(id);
+                    chat.setId(String.valueOf(id));
                     chat.setStatus(ds.getValue().toString());
                     ChatTable.updateMsgStatus(chat,ctx);
                     if(chatBoxContext!=null) {
@@ -482,74 +524,94 @@ public static String myNumber=null;
         Uri uri;
         TextView downloadPercentage;
         Context context;
+        ImageView viv;
 
-        public MyTaskParams(Chat chat, ImageView imv,TextView downloadPercentage,Context context) {
+        public MyTaskParams(Chat chat, ImageView imv,TextView downloadPercentage,Context context,ImageView viv) {
             this.chat=chat;
             this.imv=imv;
             this.downloadPercentage=downloadPercentage;
             this.context=context;
+            this.viv=viv;
         }
     }
     private static final class LongOperation extends AsyncTask<MyTaskParams, MyTaskParams, MyTaskParams[]> {
         @Override
         protected MyTaskParams[] doInBackground(MyTaskParams... myTaskParams) {
-            //Uri uri=ChatUtil.loadImageFromStorage(myTaskParams[0].chat.getMsg(),String.valueOf(myTaskParams[0].chat.getId()));
-            myTaskParams[0].uri=Uri.parse(myTaskParams[0].chat.getMsg());
+            System.out.println("real path------->"+myTaskParams[0].chat.getMsg());
+            String exPath= myTaskParams[0].chat.getMsg();
+            myTaskParams[0].uri=Uri.parse(exPath);
             return myTaskParams;
         }
         @Override
         protected void onPostExecute(final MyTaskParams[] myTaskParams) {
-            if(myTaskParams[0].uri!=null)
-            {
-                myTaskParams[0].imv.setImageURI(myTaskParams[0].uri);
-                myTaskParams[0].imv.setOnClickListener(new View.OnClickListener() {
-                    @Override
-                    public void onClick(View v) {
-                            ChatUtil.getImagePreview(myTaskParams[0].uri,myTaskParams[0].context);
-                    }
-                });
-            }
-            else
+
+            if(myTaskParams[0].uri==null)
                 myTaskParams[0].imv.setImageResource(R.drawable.image_error);
+            else
+            {
+                if(myTaskParams[0].chat.getMsgType().equalsIgnoreCase("image")) {
+                    myTaskParams[0].imv.setVisibility(View.VISIBLE);
+                    myTaskParams[0].imv.setImageURI(myTaskParams[0].uri);
+                    myTaskParams[0].imv.setOnClickListener(new View.OnClickListener() {
+                        @Override
+                        public void onClick(View v) {
+                            ChatUtil.getImagePreview(myTaskParams[0].uri, myTaskParams[0].context);
+                        }
+                    });
+                }else{
+                    myTaskParams[0].viv.setVisibility(View.VISIBLE);
+                    Bitmap bmThumbnail = ThumbnailUtils.createVideoThumbnail(myTaskParams[0].chat.getMsg(), MediaStore.Images.Thumbnails.MINI_KIND);
+                    myTaskParams[0].viv.setImageBitmap(bmThumbnail);
+                }
+            }
+
+
 
         }
     }
     private static final class DownloadImageInBackground extends AsyncTask<MyTaskParams, MyTaskParams, MyTaskParams[]> {
         @Override
         protected MyTaskParams[] doInBackground(final MyTaskParams... myTaskParams) {
+            System.out.println("chat id------------? "+myTaskParams[0].chat.getId());
             StorageReference storageReference = FirebaseStorage.getInstance().getReference();
-            StorageReference ref= storageReference.child("MystImages/"+ myTaskParams[0].chat.getId());
+            StorageReference ref= storageReference.child("MystImages/"+myTaskParams[0].chat.getId());
             final TextView downloadPercentage=myTaskParams[0].downloadPercentage;
             File localFile = null;
-            try {
-                localFile = File.createTempFile(String.valueOf(myTaskParams[0].chat.getId()), "");
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
+            if(myTaskParams[0].chat.getMsgType().equalsIgnoreCase("image"))
+            localFile = new File("/storage/emulated/0/MYST/", myTaskParams[0].chat.getId()+".jpeg");
+            else
+            localFile = new File("/storage/emulated/0/MYST/", myTaskParams[0].chat.getId() + ".mp4");
             final File finalLocalFile = localFile;
+
             ref.getFile(finalLocalFile).addOnSuccessListener(new OnSuccessListener<FileDownloadTask.TaskSnapshot>() {
                 @Override
                 public void onSuccess(FileDownloadTask.TaskSnapshot taskSnapshot) {
                     final Uri uri=Uri.parse(finalLocalFile.getPath());
                     try {
-                        myTaskParams[0].imv.setImageURI(uri);
-                        ChatUtil.createDirectoryAndSaveFile(uri,"",String.valueOf(myTaskParams[0].chat.getId()));
+
+                        //String absPath=ChatUtil.createDirectoryAndSaveFile(uri,String.valueOf(myTaskParams[0].chat.getId()),myTaskParams[0].chat.getMsgType(),finalLocalFile);
                         myTaskParams[0].chat.setStatus("read");
-                        ChatTable.updateMsgStatus(myTaskParams[0].chat,chatBoxContext);
+                        myTaskParams[0].chat.setMsg(finalLocalFile.getPath());
+                        System.out.println("abs path--------------------> "+finalLocalFile.getPath());
+                        ChatTable.updateMsgStatusAndMsg(myTaskParams[0].chat,chatBoxContext);
                         FirebaseDatabase firebaseDatabase =FirebaseDatabase.getInstance();
                         DatabaseReference fireRefs=firebaseDatabase.getReference("readSync").child(chatNumber).child(myNumber).child(String.valueOf(myTaskParams[0].chat.getId()));
                         fireRefs.setValue("read");
                         downloadPercentage.setVisibility(View.GONE);
-                        myTaskParams[0].imv.setOnClickListener(new View.OnClickListener() {
-                            @Override
-                            public void onClick(View v) {
-                                if(uri!=null)
-                                ChatUtil.getImagePreview(uri,myTaskParams[0].context);
-                            }
-                        });
+                        if(myTaskParams[0].chat.getMsgType().equalsIgnoreCase("image")) {
+                            myTaskParams[0].imv.setImageURI(uri);
+                            myTaskParams[0].imv.setOnClickListener(new View.OnClickListener() {
+                                @Override
+                                public void onClick(View v) {
+                                    if (uri != null)
+                                        ChatUtil.getImagePreview(uri, myTaskParams[0].context);
+                                }
+                            });
+                        }else{
+                            Bitmap bmThumbnail = ThumbnailUtils.createVideoThumbnail(finalLocalFile.getPath(), MediaStore.Images.Thumbnails.MINI_KIND);
+                            myTaskParams[0].viv.setImageBitmap(bmThumbnail);
+                        }
 
-                    } catch (FileNotFoundException e) {
-                        e.printStackTrace();
                     } catch (Exception e) {
                         e.printStackTrace();
                     }
@@ -575,18 +637,23 @@ public static String myNumber=null;
 
         @Override
         protected void onPostExecute(final MyTaskParams[] myTaskParams) {
-            if(myTaskParams[0].uri!=null)
-            {
-                myTaskParams[0].imv.setImageURI(myTaskParams[0].uri);
-                myTaskParams[0].imv.setOnClickListener(new View.OnClickListener() {
-                    @Override
-                    public void onClick(View v) {
-                        ChatUtil.getImagePreview(myTaskParams[0].uri,myTaskParams[0].context);
-                    }
-                });
+            if(myTaskParams[0].chat.getMsgType().equalsIgnoreCase("image")) {
+                if (myTaskParams[0].uri != null) {
+                    myTaskParams[0].imv.setImageURI(myTaskParams[0].uri);
+                    myTaskParams[0].imv.setOnClickListener(new View.OnClickListener() {
+                        @Override
+                        public void onClick(View v) {
+                            ChatUtil.getImagePreview(myTaskParams[0].uri, myTaskParams[0].context);
+                        }
+                    });
+                } else {
+                    myTaskParams[0].imv.setVisibility(View.VISIBLE);
+                    myTaskParams[0].imv.setImageResource(R.drawable.image_error);
+                }
+            }else{
+                Bitmap bmThumbnail = ThumbnailUtils.createVideoThumbnail(myTaskParams[0].chat.getMsg(), MediaStore.Images.Thumbnails.MINI_KIND);
+                myTaskParams[0].viv.setImageBitmap(bmThumbnail);
             }
-            else
-                myTaskParams[0].imv.setImageResource(R.drawable.image_error);
         }
     }
 }

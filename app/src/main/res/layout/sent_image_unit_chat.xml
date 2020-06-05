@@ -52,8 +52,14 @@
             android:background="@drawable/chat_send_background"
             android:orientation="horizontal">
     <ImageView
+        android:visibility="gone"
         android:id="@+id/chatImage"
         android:src="@drawable/image_icon"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"/>
+    <ImageView
+        android:id="@+id/chatVideo"
+        android:visibility="gone"
         android:layout_width="match_parent"
         android:layout_height="match_parent"/>
         </LinearLayout>
