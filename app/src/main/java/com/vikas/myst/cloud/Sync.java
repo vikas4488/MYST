@@ -113,7 +113,6 @@ public static List<Chat> markerList=new ArrayList<>();
             referenceUnit.setValue(chat).addOnSuccessListener(new OnSuccessListener<Void>() {
                 @Override
                 public void onSuccess(Void aVoid) {
-                    System.out.println("i am decoding status id -------> "+(ChatUtil.getIntegerId(chat.getId())-3));
                     if(chatBoxContext!=null) {
                         TextView msgStatus = ((Activity) chatBoxContext).findViewById(ChatUtil.getIntegerId(chat.getId())-3);
                         msgStatus.setBackgroundResource(R.drawable.icon_sent);
@@ -211,7 +210,6 @@ public static List<Chat> markerList=new ArrayList<>();
 
         msgTime.setText(chat.getTime());
         msgStatus.setId(ChatUtil.getIntegerId(chat.getId())-3);
-        System.out.println("i am seting status id -------> "+(ChatUtil.getIntegerId(chat.getId())-3));
         LinearLayout layout= (LinearLayout) sendText.getParent().getParent().getParent();
         layout.setId(ChatUtil.getIntegerId(chat.getId())-1);
         layout.setOnClickListener(new View.OnClickListener() {
@@ -330,10 +328,11 @@ public static List<Chat> markerList=new ArrayList<>();
             imv=receiveView.findViewById(R.id.chatImage);
         else
             imv=receiveView.findViewById(R.id.chatVideo);
-
-            imv.setId(ChatUtil.getIntegerId(chat.getId())-2);
             imv.setVisibility(View.VISIBLE);
-
+            imv.setId(ChatUtil.getIntegerId(chat.getId())-2);
+        System.out.println("imags iddd"+(ChatUtil.getIntegerId(chat.getId())-2));
+        TextView msgTime=receiveView.findViewById(R.id.msgTime);
+        msgTime.setText(chat.getTime());
         LinearLayout layout= (LinearLayout) imv.getParent().getParent().getParent();
         layout.setId(ChatUtil.getIntegerId(chat.getId())-1);
         layout.setOnClickListener(new View.OnClickListener() {
@@ -394,6 +393,9 @@ public static List<Chat> markerList=new ArrayList<>();
             imv=receiveView.findViewById(R.id.chatImage);
         else
             imv=receiveView.findViewById(R.id.chatVideo);
+        imv.setVisibility(View.VISIBLE);
+        TextView msgTime=receiveView.findViewById(R.id.msgTime);
+        msgTime.setText(chat.getTime());
         imv.setVisibility(View.VISIBLE);
         final ImageView downloadImage=receiveView.findViewById(R.id.downloadImage);
         final TextView downloadPercentage=receiveView.findViewById(R.id.downloadPercentage);
@@ -463,17 +465,20 @@ public static List<Chat> markerList=new ArrayList<>();
             List<Chat> chats= ChatTable.getChatListByFilterArgs(ChatStructure.FRIEND,friendNumber,ctx);
             String myType=ChatUtil.getMyType(myNumber,friendNumber);
             final List<Chat> backgroundChats = new ArrayList<>();
+
             for(Chat chat:chats){
-                if(chat.getFrom().equalsIgnoreCase(myType))
-                    if(chat.getMsgType().equalsIgnoreCase("image")||chat.getMsgType().equalsIgnoreCase("video"))
-                    {
-                        setSentImageView(ctx,chat);
+
+                if(chat.getFrom().equalsIgnoreCase(myType)) {
+                    if (chat.getMsgType().equalsIgnoreCase("image") || chat.getMsgType().equalsIgnoreCase("video")) {
+                        setSentImageView(ctx, chat);
                         backgroundChats.add(chat);
-                    }
-                    else
-                    setSendChatView(ctx,chat);
-                else
+                    } else
+                        setSendChatView(ctx, chat);
+                } else
                 {
+                    System.out.println("chat11 type "+chat.getMsgType());
+                    System.out.println("chat22 msg "+chat.getMsg());
+                    System.out.println("chat33 idd "+chat.getId());
                     if((chat.getStatus().equalsIgnoreCase("unread")||chat.getStatus().equalsIgnoreCase("delivered"))&&!chat.getMsgType().equalsIgnoreCase("image")) {
                         DatabaseReference fireRefs = firebaseDatabase.getReference("readSync").child(friendNumber).child(myNumber).child(String.valueOf(chat.getId()));
                         fireRefs.setValue("read");
@@ -530,12 +535,12 @@ public static List<Chat> markerList=new ArrayList<>();
 
                     NewChat newChat=new NewChat();
                     if(chatBoxContext!=null&&chat.getFriend().equalsIgnoreCase(chatNumber)){
-                        if(chat.getMsgType().equalsIgnoreCase("image"))
+                        if(chat.getMsgType().equalsIgnoreCase("image")||chat.getMsgType().equalsIgnoreCase("video"))
                             setReceiveImageView(chatBoxContext,chat);
                         else
                         setReceiveChatView(chatBoxContext,chat);
                         newChat.setMsgCount("0");
-                        if(chat.getMsgType().equalsIgnoreCase("image")) {
+                        if(chat.getMsgType().equalsIgnoreCase("image")||chat.getMsgType().equalsIgnoreCase("video")) {
                             fireRefs.setValue("delivered");
                             chat.setStatus("delivered");
                         }
@@ -551,7 +556,7 @@ public static List<Chat> markerList=new ArrayList<>();
                         newChat.setMsgCount("1");
                     }
                     ChatTable.saveChat(ctx,chat);
-                    if(chat.getMsgType().equalsIgnoreCase("image"))
+                    if(chat.getMsgType().equalsIgnoreCase("image")||chat.getMsgType().equalsIgnoreCase("image"))
                         newChat.setMsg(chat.getMsgType());
                     else
                     newChat.setMsg(chat.getMsg());
@@ -600,7 +605,6 @@ public static List<Chat> markerList=new ArrayList<>();
                         chat.setStatus(ds.getValue().toString());
                         ChatTable.updateMsgStatus(chat,ctx);
                         if(chatBoxContext!=null) {
-                            System.out.println("i am readSync status id -------> "+(ChatUtil.getIntegerId(chat.getId())-3));
                             TextView msgStatus = ((Activity) chatBoxContext).findViewById(ChatUtil.getIntegerId(chat.getId())-3);
                             if(ds.getValue().toString().equalsIgnoreCase("delivered"))
                                 msgStatus.setBackgroundResource(R.drawable.icon_delivered);
@@ -835,6 +839,15 @@ public static List<Chat> markerList=new ArrayList<>();
                         }else{
                             Bitmap bmThumbnail = ThumbnailUtils.createVideoThumbnail(finalLocalFile.getPath(), MediaStore.Images.Thumbnails.MINI_KIND);
                             myTaskParams[0].viv.setImageBitmap(bmThumbnail);
+                            myTaskParams[0].viv.setOnClickListener(new View.OnClickListener() {
+                                @Override
+                                public void onClick(View v) {
+                                    Intent videoPlayerIntent=new Intent(myTaskParams[0].context, VideoPlayer.class);
+
+                                    videoPlayerIntent.putExtra("filePath",finalLocalFile.getPath());
+                                    (myTaskParams[0].context).startActivity(videoPlayerIntent);
+                                }
+                            });
                         }
 
                     } catch (Exception e) {

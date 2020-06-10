@@ -74,6 +74,11 @@ public class ChatList extends AppCompatActivity implements ChatRecyclerViewAdapt
     ChatRecyclerViewAdapter recyclerViewAdapter;
     Button refreshContact;
     CustomLoading customLoading;
+    private static final int REQUEST_EXTERNAL_STORAGE = 111;
+    private static String[] PERMISSIONS_STORAGE = {
+            Manifest.permission.READ_EXTERNAL_STORAGE,
+            Manifest.permission.WRITE_EXTERNAL_STORAGE
+    };
     static SimpleDateFormat simpleTimeDateFormat=new SimpleDateFormat("ddMMyyyyHHmmss", Locale.ENGLISH);
     @SuppressLint("ClickableViewAccessibility")
     @RequiresApi(api = Build.VERSION_CODES.P)
@@ -295,7 +300,7 @@ public class ChatList extends AppCompatActivity implements ChatRecyclerViewAdapt
 
         if (requestCode == CONTACT_PERMISSION_CODE) {
             if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                initiateIt();
+                verifyStoragePermissions((Activity) ctx);
             }
             else {
                 AlertDialog ad=ChatUtil.getCustomAlert("CONTACT PERMISSION","PERMISSION DENIED CAN'T PROCEED FURTHER",ctx);
@@ -308,7 +313,30 @@ public class ChatList extends AppCompatActivity implements ChatRecyclerViewAdapt
             }
         }
 
+        if (requestCode == REQUEST_EXTERNAL_STORAGE) {
+            if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                initiateIt();
+            }
+            else {
+                AlertDialog ad=ChatUtil.getCustomAlert("Permission Denied","please allow permission to send video and images",ctx);
+                ad.setOnDismissListener(new DialogInterface.OnDismissListener() {
+                    @Override
+                    public void onDismiss(DialogInterface dialog) {
+                        finish();
+                    }
+                });
+            }
+        }
+
 
     }
+    public void verifyStoragePermissions(Activity activity) {
+        int permission = ActivityCompat.checkSelfPermission(activity, Manifest.permission.WRITE_EXTERNAL_STORAGE);
+
+        if (permission != PackageManager.PERMISSION_GRANTED)
+            ActivityCompat.requestPermissions(activity,PERMISSIONS_STORAGE, REQUEST_EXTERNAL_STORAGE);
+
+    }
+
 
 }

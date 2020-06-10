@@ -86,11 +86,7 @@ public class ChatBox extends AppCompatActivity {
     LinearLayout imageVideoLayout;
     LinearLayout chatPrent;
     private MediaController mediaControls;
-    private static final int REQUEST_EXTERNAL_STORAGE = 111;
-    private static String[] PERMISSIONS_STORAGE = {
-            Manifest.permission.READ_EXTERNAL_STORAGE,
-            Manifest.permission.WRITE_EXTERNAL_STORAGE
-    };
+
     Button deleteChats;
     SimpleDateFormat simpleTimeDateFormat=new SimpleDateFormat("yyyyMMddHHmmssSSSS", Locale.ENGLISH);
     static SimpleDateFormat simpleTimeFormat=new SimpleDateFormat("hh mm a", Locale.ENGLISH);
@@ -268,32 +264,29 @@ public class ChatBox extends AppCompatActivity {
         imageUploadButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                verifyStoragePermissions((Activity) ctx);
-            }
-        });
-    }
-    private void mediaPermissionBypass(){
-        if(imageVideoLayout.getVisibility()==View.INVISIBLE)
-            imageVideoLayout.setVisibility(View.VISIBLE);
-        else
-            imageVideoLayout.setVisibility(View.INVISIBLE);
-        Button pickImage=findViewById(R.id.pickImage);
-        Button pickVideo=findViewById(R.id.pickVideo);
-        final Intent filePickerIntent = new Intent();
-        pickImage.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                filePickerIntent.setAction(Intent.ACTION_GET_CONTENT);
-                filePickerIntent.setType("image/*");
-                startActivityForResult(Intent.createChooser(filePickerIntent, "Select Image from here..."), 100);
-            }
-        });
-        pickVideo.setOnClickListener(new View.OnClickListener() {
-            @Override
-            public void onClick(View v) {
-                filePickerIntent.setAction(Intent.ACTION_GET_CONTENT);
-                filePickerIntent.setType("video/*");
-                startActivityForResult(Intent.createChooser(filePickerIntent, "Select Video from here..."), 101);
+                if(imageVideoLayout.getVisibility()==View.INVISIBLE)
+                    imageVideoLayout.setVisibility(View.VISIBLE);
+                else
+                    imageVideoLayout.setVisibility(View.INVISIBLE);
+                Button pickImage=findViewById(R.id.pickImage);
+                Button pickVideo=findViewById(R.id.pickVideo);
+                final Intent filePickerIntent = new Intent();
+                pickImage.setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        filePickerIntent.setAction(Intent.ACTION_GET_CONTENT);
+                        filePickerIntent.setType("image/*");
+                        startActivityForResult(Intent.createChooser(filePickerIntent, "Select Image from here..."), 100);
+                    }
+                });
+                pickVideo.setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        filePickerIntent.setAction(Intent.ACTION_GET_CONTENT);
+                        filePickerIntent.setType("video/*");
+                        startActivityForResult(Intent.createChooser(filePickerIntent, "Select Video from here..."), 101);
+                    }
+                });
             }
         });
     }
@@ -341,6 +334,7 @@ public class ChatBox extends AppCompatActivity {
                     ad.dismiss();
                 }
             });
+            final String finalExpPath = expPath;
             imageOkButton.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
@@ -365,6 +359,14 @@ public class ChatBox extends AppCompatActivity {
                     }else{
                         imv=imageView.findViewById(R.id.chatVideo);
                         imv.setVisibility(View.VISIBLE);
+                        imv.setOnClickListener(new View.OnClickListener() {
+                            @Override
+                            public void onClick(View v) {
+                                Intent videoPlayerIntent=new Intent(ctx, VideoPlayer.class);
+                                videoPlayerIntent.putExtra("filePath", finalExpPath);
+                                (ctx).startActivity(videoPlayerIntent);
+                            }
+                        });
                         try {
                             String absPath=PathUtil.getPath(ctx,filePath);
                             Bitmap bmThumbnail = ThumbnailUtils.createVideoThumbnail(absPath, MediaStore.Images.Thumbnails.MINI_KIND);
@@ -561,28 +563,5 @@ public class ChatBox extends AppCompatActivity {
 
 
 
-    public void verifyStoragePermissions(Activity activity) {
-        int permission = ActivityCompat.checkSelfPermission(activity, Manifest.permission.WRITE_EXTERNAL_STORAGE);
 
-        if (permission != PackageManager.PERMISSION_GRANTED)
-            ActivityCompat.requestPermissions(activity,PERMISSIONS_STORAGE, REQUEST_EXTERNAL_STORAGE);
-        else
-            mediaPermissionBypass();
-    }
-    @Override
-    public void onRequestPermissionsResult(int requestCode,@NonNull String[] permissions,@NonNull int[] grantResults)
-    {
-        super.onRequestPermissionsResult(requestCode,permissions,grantResults);
-
-        if (requestCode == REQUEST_EXTERNAL_STORAGE) {
-            if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-                mediaPermissionBypass();
-            }
-            else {
-                ChatUtil.getCustomAlert("Permission Denied","please allow permission to send video and images",ctx);
-            }
-        }
-
-
-    }
 }

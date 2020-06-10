@@ -32,8 +32,8 @@ Intent loginProcess;
         new Handler().postDelayed(new Runnable() {
             @Override
             public void run() {
-                chatBox.putExtra("myNumber", "7008529481");
-                startActivity(chatBox);
+                //chatBox.putExtra("myNumber", "9934619173");
+                startActivity(loginProcess);
                 finish();
             }
         },150);
