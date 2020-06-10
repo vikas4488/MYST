@@ -12,6 +12,7 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.WindowManager;
 import android.widget.Button;
+import android.widget.CheckBox;
 import android.widget.ImageView;
 import android.widget.TextView;
 
@@ -33,7 +34,7 @@ import java.util.Locale;
 
 public class ChatUtil extends AppCompatActivity {
     private static final int PICK_IMAGE_REQUEST = 22;
-    static SimpleDateFormat simpleTimeDateFormat=new SimpleDateFormat("ddMMyyyyHHmmss", Locale.ENGLISH);
+    static SimpleDateFormat simpleTimeDateFormat=new SimpleDateFormat("yyyyMMddHHmmssSSSS", Locale.ENGLISH);
     static SimpleDateFormat simpleDateFormat=new SimpleDateFormat("dd/MM/yyyy", Locale.ENGLISH);
     private static Uri filePath;
     public static String getABUnit(String number1,String number2){
@@ -75,6 +76,30 @@ public class ChatUtil extends AppCompatActivity {
         AlertDialog.Builder builder=new AlertDialog.Builder(context);
         final AlertDialog ad=builder.create();
         ad.setView(v);
+        ad.show();
+        b.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                ad.dismiss();
+            }
+        });
+
+        return ad;
+    }
+    public static AlertDialog getCustomAlertBoolean(String title, String message,String booleanMessage, Context context){
+        View v= LayoutInflater.from(context).inflate(R.layout.delete_message_alert,null);
+        TextView t1=v.findViewById(R.id.customAlertTitle);
+        TextView t2=v.findViewById(R.id.customAlertContent);
+        CheckBox c=v.findViewById(R.id.check);
+        c.setText(booleanMessage);
+        Button b=v.findViewById(R.id.customAlertOkButton);
+        t1.setText(title);
+        t2.setText(message);
+
+        AlertDialog.Builder builder=new AlertDialog.Builder(context);
+        final AlertDialog ad=builder.create();
+        ad.setView(v);
+        ad.show();
         b.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
@@ -124,82 +149,7 @@ public class ChatUtil extends AppCompatActivity {
         return false;
     }
 
-    public static String createDirectoryAndSaveFile(Uri uri, String timeId, String type, File fll) {
-
-        File direct = new File(Environment.getExternalStorageDirectory() + "/MYST");
-
-        if (!direct.exists()) {
-            File directory = new File("/sdcard/MYST/");
-            directory.mkdirs();
-        }
-        if(type.equalsIgnoreCase("image")) {
-            File file = new File("/storage/emulated/0/MYST/", timeId + ".jpeg");
-            if (file.exists()) {
-                file.delete();
-            }
-            final Bitmap bitmap = BitmapFactory.decodeFile(uri.getPath());
-            try {
-                FileOutputStream out = new FileOutputStream(file);
-                System.out.println("----------> " + uri.getPath());
-                bitmap.compress(Bitmap.CompressFormat.JPEG, 100, out);
-                /*out.write(uri.toString().getBytes());*/
-                out.flush();
-                out.close();
-            } catch (Exception e) {
-                e.printStackTrace();
-                return "failed";
-            }
-        }else{
-
-            try {
-                File newfile = new File("/storage/emulated/0/MYST/", timeId + ".mp4");
-
-                if (newfile.exists()) newfile.delete();
-                InputStream in = new FileInputStream(fll);
-
-                OutputStream out = new FileOutputStream(newfile);
-                byte[] buf = new byte[1024];
-                int len;
-
-                while ((len = in.read(buf)) > 0) {
-                    out.write(buf, 0, len);
-                }
-
-                in.close();
-                out.close();
-                System.out.println( "Copy file successful.");
-
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
-
-            // Copy the bits from instream to outstream
-
-        }
-        System.out.println("i am sendinf abs path -----> "+uri.getPath());
-        return uri.getPath();
-    }
-    public static Uri loadImageFromStorage(String path,String timeId)
-    {
-        System.out.println("----------------------> "+path);
-        Bitmap b = null;
-        File direct = new File(Environment.getExternalStorageDirectory() + "/MYST"+path);
-        if(path.equalsIgnoreCase(""))
-            path="/";
-        if (!direct.exists()) {
-            File directory = new File("/sdcard/MYST"+path);
-            directory.mkdirs();
-        }
-
-        File file = new File("/sdcard/MYST"+path, timeId+".jpeg");
-        file=new File(path);
-        Uri u=null;
-        if (file.exists()) {
-            u=Uri.parse(direct.getPath());
-        }
-        return u;
-    }
-public static AlertDialog getImagePreview(Uri filepath, Context ctx){
+    public static AlertDialog getImagePreview(Uri filepath, Context ctx){
 
     View v= LayoutInflater.from(ctx).inflate(R.layout.image_preview,null);
     ImageView imagePreview=v.findViewById(R.id.imagePreview);
@@ -211,4 +161,15 @@ public static AlertDialog getImagePreview(Uri filepath, Context ctx){
     ad.show();
     return ad;
 }
+public  static int getIntegerId(String id){
+return Integer.parseInt(id.substring(id.length()-9));
+}
+    public  static int getIntegerId(Long id){
+        String idl=String.valueOf(id);
+        return Integer.parseInt(idl.substring(idl.length()-10));
+    }
+    public  static int getIntegerId(int id){
+        String idl=String.valueOf(id);
+        return Integer.parseInt(idl.substring(idl.length()-10));
+    }
 }

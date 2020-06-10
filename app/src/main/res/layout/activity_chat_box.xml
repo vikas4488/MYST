@@ -18,7 +18,6 @@
         android:orientation="horizontal"
         android:layout_marginBottom="1dp"
         >
-
     <TextView
         android:id="@+id/friendNameView"
         android:layout_width="wrap_content"
@@ -60,11 +59,21 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_weight="0.98"
-        android:gravity="bottom">
+        >
         <RelativeLayout
             android:layout_width="match_parent"
-            android:layout_height="match_parent">
+            android:layout_height="match_parent"
+            >
+            <Button
+                android:id="@+id/deleteChats"
+                android:visibility="gone"
+                android:layout_alignParentRight="true"
+                android:background="#FFC1C1"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="delete chats"/>
         <ScrollView
+            android:layout_alignParentBottom="true"
             android:id="@+id/chatScroll"
             android:layout_width="match_parent"
             android:layout_height="wrap_content">
@@ -75,30 +84,30 @@
                 android:orientation="vertical">
             </LinearLayout>
         </ScrollView>
-            <Button
-                android:id="@+id/test"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text="test"/>
             <LinearLayout
+                android:background="#689C98FF"
                 android:id="@+id/imageVideoLayout"
                 android:visibility="invisible"
+                android:padding="10dp"
                 android:layout_width="wrap_content"
+                android:layout_marginRight="10dp"
                 android:layout_height="wrap_content"
+                android:layout_marginBottom="-10dp"
                 android:layout_alignParentBottom="true"
                 android:layout_alignParentRight="true">
                 <Button
                     android:id="@+id/pickVideo"
                     android:layout_marginRight="10dp"
                     android:layout_width="wrap_content"
+                    android:background="@drawable/video_pick"
                     android:layout_height="wrap_content"
-                    android:text="video"/>
+                    android:text=""/>
                 <Button
                     android:id="@+id/pickImage"
-                    android:layout_marginRight="70dp"
+                    android:background="@drawable/image_pick"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="image"/>
+                    android:text=""/>
             </LinearLayout>
         </RelativeLayout>
     </LinearLayout>
@@ -122,7 +131,7 @@
         android:ems="8"
         android:paddingTop="10dp"
         android:paddingLeft="20dp"
-        android:paddingRight="10dp"
+        android:paddingRight="38dp"
         android:paddingBottom="10dp"
         android:hint="Enter your message"
         android:layout_width="match_parent"

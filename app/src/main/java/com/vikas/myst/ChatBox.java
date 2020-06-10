@@ -3,11 +3,16 @@ package com.vikas.myst;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.app.ActivityCompat;
 
+import android.Manifest;
+import android.app.Activity;
 import android.app.AlertDialog;
 import android.content.ContentResolver;
 import android.content.Context;
+import android.content.DialogInterface;
 import android.content.Intent;
+import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.graphics.Color;
 import android.media.ThumbnailUtils;
@@ -16,15 +21,18 @@ import android.os.AsyncTask;
 import android.os.Bundle;
 import android.provider.MediaStore;
 import android.view.LayoutInflater;
+import android.view.MotionEvent;
 import android.view.View;
 import android.webkit.MimeTypeMap;
 import android.widget.Button;
+import android.widget.CheckBox;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.MediaController;
 import android.widget.ProgressBar;
 import android.widget.ScrollView;
 import android.widget.TextView;
+import android.widget.Toast;
 import android.widget.VideoView;
 
 import com.google.android.gms.tasks.OnFailureListener;
@@ -38,17 +46,22 @@ import com.google.firebase.storage.FirebaseStorage;
 import com.google.firebase.storage.OnProgressListener;
 import com.google.firebase.storage.StorageReference;
 import com.google.firebase.storage.UploadTask;
+import com.vikas.myst.bean.Chat;
 import com.vikas.myst.cloud.Sync;
+import com.vikas.myst.sql.ChatTable;
 import com.vikas.myst.sql.ContactTable;
 import com.vikas.myst.sql.NewChatTable;
 import com.vikas.myst.util.ChatUtil;
+import com.vikas.myst.util.ParallelProcess;
 import com.vikas.myst.util.PathUtil;
 
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.net.URISyntaxException;
 import java.text.SimpleDateFormat;
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
 import java.util.Locale;
 import java.util.Timer;
 import java.util.TimerTask;
@@ -71,10 +84,19 @@ public class ChatBox extends AppCompatActivity {
     LinearLayout chatLayout;
     StorageReference storageReference;
     LinearLayout imageVideoLayout;
-    Button test;
+    LinearLayout chatPrent;
     private MediaController mediaControls;
-    SimpleDateFormat simpleTimeDateFormat=new SimpleDateFormat("ddMMyyyyHHmmss", Locale.ENGLISH);
+    private static final int REQUEST_EXTERNAL_STORAGE = 111;
+    private static String[] PERMISSIONS_STORAGE = {
+            Manifest.permission.READ_EXTERNAL_STORAGE,
+            Manifest.permission.WRITE_EXTERNAL_STORAGE
+    };
+    Button deleteChats;
+    SimpleDateFormat simpleTimeDateFormat=new SimpleDateFormat("yyyyMMddHHmmssSSSS", Locale.ENGLISH);
+    static SimpleDateFormat simpleTimeFormat=new SimpleDateFormat("hh mm a", Locale.ENGLISH);
     public static String friendStatus="unknown";
+
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -82,6 +104,9 @@ public class ChatBox extends AppCompatActivity {
         ctx=this;
         msgView=findViewById(R.id.msgView);
         sendMsg=findViewById(R.id.sendMsg);
+        chatPrent=findViewById(R.id.chatPrent);
+        deleteChats=findViewById(R.id.deleteChats);
+        Sync.deleteChats=deleteChats;
         Intent myIntent=getIntent();
         mediaControls = new MediaController(this);
         myNumber=myIntent.getStringExtra("myNumber");
@@ -89,6 +114,8 @@ public class ChatBox extends AppCompatActivity {
         friendNameView=findViewById(R.id.friendNameView);
         onlineDot=findViewById(R.id.onlineDot);
         lastSeen=findViewById(R.id.lastSeen);
+
+
         chatLayout=findViewById(R.id.scrollLayout);
         imageUploadButton=findViewById(R.id.imageUploadButton);
         sendImage=new Intent(getBaseContext(),SendImage.class);
@@ -96,7 +123,6 @@ public class ChatBox extends AppCompatActivity {
         friendName= ContactTable.getContactName(friendNumber,ctx);
         friendNameView.setText(friendName);
         imageVideoLayout=findViewById(R.id.imageVideoLayout);
-        test=findViewById(R.id.test);
         Sync.chatBoxContext=ctx;
         Sync.chatNumber=friendNumber;
         chatScroll = findViewById(R.id.chatScroll);
@@ -141,6 +167,7 @@ public class ChatBox extends AppCompatActivity {
         super.finish();
         Sync.chatBoxContext=null;
         Sync.chatNumber=null;
+        Sync.markerList.clear();
         timer.cancel();
     }
 
@@ -148,12 +175,50 @@ public class ChatBox extends AppCompatActivity {
     public void onBackPressed() {
         super.onBackPressed();
         if(imageVideoLayout.getVisibility()==View.VISIBLE)
-            imageVideoLayout.setVisibility(View.GONE);
+            imageVideoLayout.setVisibility(View.INVISIBLE);
         else
             finish();
     }
 
     private void initiateIt() {
+        deleteChats.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                AlertDialog ad=ChatUtil.getCustomAlertBoolean("DELETE","DELETE CHATS FOR ME","delete media from phone too?",ctx);
+                ad.setCancelable(false);
+                ad.setOnDismissListener(new DialogInterface.OnDismissListener() {
+                    @Override
+                    public void onDismiss(DialogInterface dialog) {
+                        CheckBox checkBox =  ((AlertDialog) dialog).findViewById(R.id.check);
+                        Boolean deleteMedia=checkBox.isChecked();
+                        List<String> messagesIds=new ArrayList<>();
+                        List<Chat> imagesIds=new ArrayList<>();
+                        for(Chat chat:Sync.markerList){
+                            LinearLayout layout= findViewById(ChatUtil.getIntegerId(chat.getId())-1);
+                            layout.setVisibility(View.GONE);
+                            messagesIds.add(chat.getId());
+                            if(chat.getMsgType().equalsIgnoreCase("image")||chat.getMsgType().equalsIgnoreCase("video"))
+                                imagesIds.add(chat);
+                        }
+                        if(deleteMedia) {
+                            ParallelProcess.DeleteChatsParams deleteChatsParams = new ParallelProcess.DeleteChatsParams(imagesIds, ctx);
+                            ParallelProcess.DeleteChatFromDbInBackground deleteChatFromDbInBackground = new ParallelProcess.DeleteChatFromDbInBackground();
+                            deleteChatFromDbInBackground.execute(deleteChatsParams);
+                        }
+                        ChatTable.deleteSelectedChats(messagesIds,ctx);
+                        Sync.markerList.clear();
+                        Sync.marker=false;
+                        deleteChats.setVisibility(View.GONE);
+                    }
+                });
+            }
+        });
+        chatPrent.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                imageVideoLayout.setVisibility(View.INVISIBLE);
+            }
+        });
         NewChatTable.resetNewChatToZeroCount(friendNumber,ctx);
         Sync.setChatsFromDb(myNumber,friendNumber,ctx);
         msgView.setOnFocusChangeListener(new View.OnFocusChangeListener() {
@@ -187,7 +252,15 @@ public class ChatBox extends AppCompatActivity {
                 String msg=msgView.getText().toString();
                 msg=msg.trim();
                 if(!msg.equalsIgnoreCase("")){
-                    Sync.saveInFireDbAndSetInViewChat(myNumber,friendNumber,msg,ctx,"text",null);
+                    String timeId=simpleTimeDateFormat.format(new Date());
+                    String time=simpleTimeFormat.format(new Date());
+                    Chat chat=new Chat();
+                    chat.setMsg(msg);
+                    chat.setMsgType("text");
+                    chat.setFriend(friendNumber);
+                    chat.setId(timeId);
+                    chat.setTime(time);
+                    Sync.saveInFireDbAndSetInViewChat(myNumber,ctx,chat);
                     msgView.setText("");
                 }
             }
@@ -195,29 +268,32 @@ public class ChatBox extends AppCompatActivity {
         imageUploadButton.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                if(imageVideoLayout.getVisibility()==View.GONE)
-                imageVideoLayout.setVisibility(View.VISIBLE);
-                else
-                    imageVideoLayout.setVisibility(View.GONE);
-                Button pickImage=findViewById(R.id.pickImage);
-                Button pickVideo=findViewById(R.id.pickVideo);
-                final Intent filePickerIntent = new Intent();
-                pickImage.setOnClickListener(new View.OnClickListener() {
-                    @Override
-                    public void onClick(View v) {
-                        filePickerIntent.setAction(Intent.ACTION_GET_CONTENT);
-                        filePickerIntent.setType("image/*");
-                        startActivityForResult(Intent.createChooser(filePickerIntent, "Select Image from here..."), 100);
-                    }
-                });
-                pickVideo.setOnClickListener(new View.OnClickListener() {
-                    @Override
-                    public void onClick(View v) {
-                        filePickerIntent.setAction(Intent.ACTION_GET_CONTENT);
-                        filePickerIntent.setType("video/*");
-                        startActivityForResult(Intent.createChooser(filePickerIntent, "Select Video from here..."), 101);
-                    }
-                });
+                verifyStoragePermissions((Activity) ctx);
+            }
+        });
+    }
+    private void mediaPermissionBypass(){
+        if(imageVideoLayout.getVisibility()==View.INVISIBLE)
+            imageVideoLayout.setVisibility(View.VISIBLE);
+        else
+            imageVideoLayout.setVisibility(View.INVISIBLE);
+        Button pickImage=findViewById(R.id.pickImage);
+        Button pickVideo=findViewById(R.id.pickVideo);
+        final Intent filePickerIntent = new Intent();
+        pickImage.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                filePickerIntent.setAction(Intent.ACTION_GET_CONTENT);
+                filePickerIntent.setType("image/*");
+                startActivityForResult(Intent.createChooser(filePickerIntent, "Select Image from here..."), 100);
+            }
+        });
+        pickVideo.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View v) {
+                filePickerIntent.setAction(Intent.ACTION_GET_CONTENT);
+                filePickerIntent.setType("video/*");
+                startActivityForResult(Intent.createChooser(filePickerIntent, "Select Video from here..."), 101);
             }
         });
     }
@@ -225,6 +301,7 @@ public class ChatBox extends AppCompatActivity {
     protected void onActivityResult(int requestCode, int resultCode, Intent data)
     {
         super.onActivityResult(requestCode,resultCode,data);
+        imageVideoLayout.setVisibility(View.INVISIBLE);
         if ((requestCode == 100||requestCode == 101)&& resultCode == RESULT_OK && data != null && data.getData() != null) {
             final Uri filePath = data.getData();
             View pickerView=LayoutInflater.from(ctx).inflate(R.layout.send_image,null);
@@ -244,20 +321,39 @@ public class ChatBox extends AppCompatActivity {
                 type="video";
             }
             Button imageOkButton=pickerView.findViewById(R.id.imageSendButton);
+            Button cancelButton=pickerView.findViewById(R.id.imageCancel);
             android.app.AlertDialog.Builder builder=new android.app.AlertDialog.Builder(ctx);
             final AlertDialog ad=builder.create();
             ad.setView(pickerView);
             ad.show();
             final String finalType = type;
-            final String finalType1 = type;
+            final Chat chat =new Chat();
+            String expPath = null;
+            try {
+                expPath=PathUtil.getPath(ctx,filePath);
+            } catch (URISyntaxException e) {
+                e.printStackTrace();
+            }
+            chat.setMsg(expPath);
+            cancelButton.setOnClickListener(new View.OnClickListener() {
+                @Override
+                public void onClick(View v) {
+                    ad.dismiss();
+                }
+            });
             imageOkButton.setOnClickListener(new View.OnClickListener() {
                 @Override
                 public void onClick(View v) {
                     ad.dismiss();
                     View imageView=LayoutInflater.from(ctx).inflate(R.layout.sent_image_unit_chat,null);
+                    TextView msgTime=imageView.findViewById(R.id.msgTime);
+                    final String time=simpleTimeFormat.format(new Date());
+                    msgTime.setText(time);
+                    ImageView imv;
+                    chat.setMsgType(finalType);
                     if(finalType.equalsIgnoreCase("image"))
                     {
-                        ImageView imv=imageView.findViewById(R.id.chatImage);
+                        imv=imageView.findViewById(R.id.chatImage);
                         imv.setVisibility(View.VISIBLE);
                         imv.setImageURI(filePath);
                         imv.setOnClickListener(new View.OnClickListener() {
@@ -267,26 +363,68 @@ public class ChatBox extends AppCompatActivity {
                             }
                         });
                     }else{
-                        ImageView videoView=imageView.findViewById(R.id.chatVideo);
-                        videoView.setVisibility(View.VISIBLE);
+                        imv=imageView.findViewById(R.id.chatVideo);
+                        imv.setVisibility(View.VISIBLE);
                         try {
                             String absPath=PathUtil.getPath(ctx,filePath);
                             Bitmap bmThumbnail = ThumbnailUtils.createVideoThumbnail(absPath, MediaStore.Images.Thumbnails.MINI_KIND);
-                            videoView.setImageBitmap(bmThumbnail);
+                            imv.setImageBitmap(bmThumbnail);
                         } catch (URISyntaxException e) {
                             e.printStackTrace();
                         }
 
                     }
+                    LinearLayout layout= (LinearLayout) imv.getParent().getParent().getParent();
+                    String timeId=simpleTimeDateFormat.format(new Date());
+                    layout.setId(ChatUtil.getIntegerId(timeId)-1);
+
+                    chat.setId(timeId);
+                    layout.setOnClickListener(new View.OnClickListener() {
+                        @Override
+                        public void onClick(View v) {
+
+                            if(Sync.marker){
+                                if(Sync.markerList.contains(chat))
+                                {
+                                    v.setBackgroundColor(0x00000000);
+                                    Sync.markerList.remove(chat);
+                                    if(Sync.markerList.size()==0)
+                                    {
+                                        Sync.marker=false;
+                                        deleteChats.setVisibility(View.GONE);
+                                    }
+                                }
+                                else
+                                {
+                                    deleteChats.setVisibility(View.VISIBLE);
+                                    v.setBackgroundColor(Color.parseColor("#FBC3C3"));
+                                    {
+                                        Sync.markerList.add(chat);
+                                        deleteChats.setVisibility(View.VISIBLE);
+                                    }
+                                }
+                            }
+                        }
+                    });
+                    layout.setOnLongClickListener(new View.OnLongClickListener() {
+                        @Override
+                        public boolean onLongClick(View v) {
+                            Sync.marker=true;
+                            v.setBackgroundColor(Color.parseColor("#FBC3C3"));
+                            Sync.markerList.add(chat);
+                            deleteChats.setVisibility(View.VISIBLE);
+                            return true;
+                        }
+                    });
                     ProgressBar imageLoading=imageView.findViewById(R.id.imageLoading);
                     TextView imageWait=imageView.findViewById(R.id.imageWait);
                     ImageView iconError=imageView.findViewById(R.id.iconError);
                     TextView uploadPercentage=imageView.findViewById(R.id.uploadPercentage);
-                    String timeId=simpleTimeDateFormat.format(new Date());
-                    imageWait.setId((int) Long.parseLong(timeId));
+
+                    imageWait.setId(ChatUtil.getIntegerId(chat.getId())-3);
 
                     try {
-                        MyTaskParams myTaskParams=new MyTaskParams(ctx,imageLoading,imageWait,iconError,myNumber,friendNumber,timeId,storageReference,filePath,uploadPercentage, finalType1);
+                        MyTaskParams myTaskParams=new MyTaskParams(ctx,imageLoading,imageWait,iconError,myNumber,friendNumber,timeId,storageReference,filePath,uploadPercentage, finalType,time);
                         LongOperation longOperation=new LongOperation();
                         longOperation.execute(myTaskParams);
                     } catch (Exception e) {
@@ -334,6 +472,7 @@ public class ChatBox extends AppCompatActivity {
         timer.scheduleAtFixedRate(task,0,5000);
     }
     private static class MyTaskParams {
+        String time;
         Context context;
         ProgressBar imageLoading;
         TextView imageWait;
@@ -352,7 +491,7 @@ public class ChatBox extends AppCompatActivity {
                      TextView imageWait, ImageView iconError,
                      String myNumber, String friendNumber,
                      String timeId, StorageReference storageReference,
-                     Uri filePath, TextView uploadPercentage, String type) {
+                     Uri filePath, TextView uploadPercentage, String type,String time) {
             this.context = context;
             this.imageLoading=imageLoading;
             this.imageWait=imageWait;
@@ -364,6 +503,7 @@ public class ChatBox extends AppCompatActivity {
             this.filePath=filePath;
             this.uploadPercentage=uploadPercentage;
             this.type=type;
+            this.time=time;
         }
     }
     private static final class LongOperation extends AsyncTask<MyTaskParams, MyTaskParams, MyTaskParams[]> {
@@ -400,7 +540,13 @@ public class ChatBox extends AppCompatActivity {
                     } catch (URISyntaxException e) {
                         e.printStackTrace();
                     }
-                    Sync.saveInFireDbAndSetInViewChat(myTaskParams[0].myNumber,myTaskParams[0].friendNumber,exPath,myTaskParams[0].context,myTaskParams[0].type,myTaskParams[0].timeId);
+                    Chat chat=new Chat();
+                    chat.setId(myTaskParams[0].timeId);
+                    chat.setFriend(myTaskParams[0].friendNumber);
+                    chat.setMsgType(myTaskParams[0].type);
+                    chat.setMsg(exPath);
+                    chat.setTime(myTaskParams[0].time);
+                    Sync.saveInFireDbAndSetInViewChat(myTaskParams[0].myNumber,myTaskParams[0].context,chat);
                 }
             }).addOnProgressListener(new OnProgressListener<UploadTask.TaskSnapshot>() {
                 @Override
@@ -411,5 +557,32 @@ public class ChatBox extends AppCompatActivity {
             });
 
         }
+    }
+
+
+
+    public void verifyStoragePermissions(Activity activity) {
+        int permission = ActivityCompat.checkSelfPermission(activity, Manifest.permission.WRITE_EXTERNAL_STORAGE);
+
+        if (permission != PackageManager.PERMISSION_GRANTED)
+            ActivityCompat.requestPermissions(activity,PERMISSIONS_STORAGE, REQUEST_EXTERNAL_STORAGE);
+        else
+            mediaPermissionBypass();
+    }
+    @Override
+    public void onRequestPermissionsResult(int requestCode,@NonNull String[] permissions,@NonNull int[] grantResults)
+    {
+        super.onRequestPermissionsResult(requestCode,permissions,grantResults);
+
+        if (requestCode == REQUEST_EXTERNAL_STORAGE) {
+            if (grantResults.length > 0 && grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+                mediaPermissionBypass();
+            }
+            else {
+                ChatUtil.getCustomAlert("Permission Denied","please allow permission to send video and images",ctx);
+            }
+        }
+
+
     }
 }

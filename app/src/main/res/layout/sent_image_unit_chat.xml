@@ -47,21 +47,30 @@
             android:layout_marginTop="10dp"
             android:layout_marginRight="10dp"
             android:layout_width="210dp"
-            android:layout_height="210dp"
-            android:padding="10dp"
+            android:layout_height="240dp"
+            android:padding="5dp"
             android:background="@drawable/chat_send_background"
-            android:orientation="horizontal">
+            android:orientation="vertical">
     <ImageView
         android:visibility="gone"
         android:id="@+id/chatImage"
+        android:scaleType="centerCrop"
         android:src="@drawable/image_icon"
         android:layout_width="match_parent"
-        android:layout_height="match_parent"/>
+        android:layout_height="210dp"/>
     <ImageView
         android:id="@+id/chatVideo"
         android:visibility="gone"
+        android:scaleType="centerCrop"
         android:layout_width="match_parent"
-        android:layout_height="match_parent"/>
+        android:layout_height="210dp"
+        android:foreground="@drawable/play_button"
+        />
+            <TextView
+                android:id="@+id/msgTime"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="23-04-44"/>
         </LinearLayout>
     </LinearLayout>
     </LinearLayout>

@@ -18,6 +18,7 @@
             android:layout_height="wrap_content"
             android:layout_marginLeft="50dp"
             android:gravity="right"
+            android:clickable="false"
             android:orientation="horizontal"
             >
             <TextView
@@ -25,21 +26,36 @@
                 android:layout_marginRight="2dp"
                 android:id="@+id/msgStatus"
                 android:layout_width="15dp"
+                android:clickable="false"
                 android:layout_height="15dp"
                 android:background="@drawable/icon_wait"
                 android:padding="5dp"/>
-            <TextView
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
                 android:background="@drawable/chat_send_background"
                 android:paddingTop="5dp"
                 android:paddingBottom="5dp"
                 android:paddingLeft="10dp"
+                android:clickable="false"
                 android:paddingRight="10dp"
-                android:textSize="16dp"
-                android:id="@+id/sendText"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:text=" hello hello hello hello"
-                />
+                android:orientation="vertical">
+                <TextView
+                    android:textSize="16dp"
+                    android:clickable="false"
+                    android:id="@+id/sendText"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text=" hello hello hello hello"
+                    />
+                <TextView
+                    android:id="@+id/msgTime"
+                    android:textSize="13dp"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="09 08 pm"/>
+            </LinearLayout>
+
         </LinearLayout>
     </LinearLayout>
 </LinearLayout>

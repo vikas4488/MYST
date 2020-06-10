@@ -5,6 +5,7 @@ import android.content.Context;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteOpenHelper;
+import android.text.TextUtils;
 
 import androidx.annotation.Nullable;
 
@@ -27,6 +28,7 @@ private final static String DROP_TABLE="DROP TABLE IF EXISTS "+ChatStructure.TAB
     public ChatTable(@Nullable Context context) {
         super(context, ChatStructure.DB_NAME, null, ChatStructure.DB_VERSION);
     }
+
 
 
 
@@ -138,5 +140,16 @@ private final static String DROP_TABLE="DROP TABLE IF EXISTS "+ChatStructure.TAB
                 contentValues,
                 selection,
                 selectionArgs);
+    }
+    public static void deleteSelectedChats(List<String> markerList, Context ctx) {
+
+        SQLiteDatabase liteDatabase=getWritableDatabase(ctx);
+        String idlist= TextUtils.join("\",\"",markerList);
+        idlist="\""+idlist+"\"";
+        String query = "DELETE FROM "+ChatStructure.TABLE
+                + " WHERE "+ChatStructure.ID+" IN ("+idlist+")";
+
+        Cursor cursor = liteDatabase.rawQuery(query, null);
+        cursor.moveToNext();
     }
 }

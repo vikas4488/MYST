@@ -15,18 +15,31 @@
     android:layout_height="wrap_content"
 android:layout_marginRight="60dp"
     >
-    <TextView
-        android:background="@drawable/chat_receive_background"
-        android:id="@+id/receiveText"
+    <LinearLayout
         android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:background="@drawable/chat_receive_background"
+        android:orientation="vertical"
         android:paddingTop="5dp"
         android:paddingBottom="5dp"
         android:paddingLeft="10dp"
-        android:paddingRight="10dp"
-        android:textSize="16dp"
-        android:layout_height="wrap_content"
-        android:text=" "
-        />
+        android:paddingRight="10dp">
+        <TextView
+            android:id="@+id/receiveText"
+            android:layout_width="wrap_content"
+            android:textSize="16dp"
+            android:layout_height="wrap_content"
+            android:text=" hello worlds"
+            />
+        <TextView
+            android:id="@+id/msgTime"
+            android:textSize="13dp"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:layout_marginLeft="7dp"
+            android:text="09 08 pm"/>
+    </LinearLayout>
+
 </LinearLayout>
     </LinearLayout>
 </LinearLayout>

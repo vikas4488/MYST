@@ -23,12 +23,12 @@ public class Chat {
         if (this == o) return true;
         if (!(o instanceof Chat)) return false;
         Chat chat = (Chat) o;
-        return getDate().equals(chat.getDate());
+        return getId().equals(chat.getId());
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(getDate());
+        return Objects.hash(getId());
     }
 
     public String getDate() {

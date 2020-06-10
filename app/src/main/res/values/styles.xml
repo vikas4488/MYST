@@ -12,6 +12,10 @@
     </style>
     <style name="AppDialogTheme" parent="Theme.AppCompat.Light.Dialog">
         <item name="windowNoTitle">true</item>
+        <item name="android:layout_height">match_parent</item>
+        <item name="android:layout_width">match_parent</item>
+        <item name="android:windowCloseOnTouchOutside">false</item>
+
     </style>
 
 </resources>
